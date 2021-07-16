@@ -12,6 +12,7 @@ clap = "2"
 comrak = "0.10.1"
 percent-encoding = "2.1.0"
 url = "2"
+walkdir = "2.3.2"
 
 [[bin]]
 name = "mlv"

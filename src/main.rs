@@ -11,6 +11,7 @@ use comrak::{
 };
 use percent_encoding::percent_decode;
 use url::Url;
+use walkdir::WalkDir;
 
 fn main() {
     let matches = App::new("mlv")
@@ -30,31 +31,24 @@ fn main() {
         eprintln!("`{}` not found. Skipping.", src.display());
     }
     if src.is_file() {
-        match src.extension() {
-            Some(ext) => {
-                let ext_str = String::from(ext.to_str().unwrap());
-                match ext_str.as_str() {
-                    "md" | "MD" | "markdown" => match validate_file(&src) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    },
-                    _ => {
-                        eprintln!(
-                            "`{}` does not appear to me a Markdown file. Skipping.",
-                            src.display()
-                        );
-                    }
-                }
-            }
-            _ => {
-                eprintln!(
-                    "`{}` does not appear to me a Markdown file. Skipping.",
-                    src.display()
-                );
-            }
+        if is_markdown(src.as_path()) {
+            let missing_links = get_missing_links(src.as_path());
+            print_missing(missing_links, src.as_path(), false);
+        } else {
+            eprintln!(
+                "`{}` does not appear to me a Markdown file. Skipping.",
+                src.display()
+            );
         }
     } else if src.is_dir() {
-        todo!();
+        for entry in WalkDir::new(&src)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| is_markdown(e.path()))
+        {
+            let missing_links = get_missing_links(entry.path());
+            print_missing(missing_links, entry.path(), true);
+        }
     } else {
         eprintln!(
             "`{}` is neither a file nor a directory. Skipping.",
@@ -87,8 +81,8 @@ fn extract_links<'a>(node: &'a AstNode<'a>, output: &mut Vec<String>) {
     }
 }
 
-fn validate_file(file: &Path) -> io::Result<bool> {
-    let file_contents = read_markdown(file)?;
+fn get_missing_links(file: &Path) -> Vec<PathBuf> {
+    let file_contents = read_markdown(file).unwrap();
     let arena = Arena::new();
     let opts = ComrakOptions {
         extension: ComrakExtensionOptions {
@@ -148,12 +142,36 @@ fn validate_file(file: &Path) -> io::Result<bool> {
             missing_links.push(l.clone());
         }
     }
-    if missing_links.len() > 0 {
-        eprintln!("The following links are not found:");
-        for l in missing_links {
-            eprintln!("{}", l.display());
+
+    missing_links
+}
+
+/// Check if the file appears to be a Markdown text file
+fn is_markdown(file: &Path) -> bool {
+    match file.extension() {
+        Some(ext) => {
+            let ext_str = String::from(ext.to_str().unwrap());
+            match ext_str.as_str() {
+                "md" | "MD" | "markdown" => true,
+                _ => false,
+            }
+        }
+        _ => false,
+    }
+}
+
+/// Print the missing links associated with the source file
+fn print_missing(missing: Vec<PathBuf>, file: &Path, print_filename: bool) {
+    if missing.len() > 0 {
+        eprintln!("The following linked files cannot be found:");
+    }
+    if print_filename {
+        for m in missing {
+            eprintln!("{}:{}", file.display(), m.display());
+        }
+    } else {
+        for m in missing {
+            eprintln!("{}", m.display());
         }
     }
-
-    Ok(false)
 }
