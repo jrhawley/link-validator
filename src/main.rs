@@ -127,6 +127,20 @@ fn validate_file(file: &Path) -> io::Result<bool> {
         }
     }
 
+    // check that each path is absolute
+    // relative paths should be defined relative to the file they come from
+    let base_dir = match file.parent() {
+        Some(dir) => dir.to_path_buf(),
+        None => PathBuf::new(),
+    };
+    for l in file_links.iter_mut() {
+        if l.is_relative() {
+            // can guarantee the unwrap because of the file name validation from before
+            let new_file = base_dir.join(l.as_path());
+            *l = new_file;
+        }
+    }
+
     // check that each file link exists
     let mut missing_links: Vec<PathBuf> = Vec::new();
     for l in &file_links {
