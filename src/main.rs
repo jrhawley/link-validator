@@ -33,6 +33,9 @@ fn main() {
     if src.is_file() {
         if is_markdown(src.as_path()) {
             let missing_links = get_missing_links(src.as_path());
+            if missing_links.len() > 0 {
+                eprintln!("The following linked files cannot be found:");
+            }
             print_missing(missing_links, src.as_path(), false);
         } else {
             eprintln!(
@@ -41,12 +44,17 @@ fn main() {
             );
         }
     } else if src.is_dir() {
+        let mut any_missing = false;
         for entry in WalkDir::new(&src)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| is_markdown(e.path()))
         {
             let missing_links = get_missing_links(entry.path());
+            if (missing_links.len() > 0) && !any_missing {
+                any_missing = true;
+                eprintln!("The following linked files cannot be found:");
+            }
             print_missing(missing_links, entry.path(), true);
         }
     } else {
@@ -162,9 +170,6 @@ fn is_markdown(file: &Path) -> bool {
 
 /// Print the missing links associated with the source file
 fn print_missing(missing: Vec<PathBuf>, file: &Path, print_filename: bool) {
-    if missing.len() > 0 {
-        eprintln!("The following linked files cannot be found:");
-    }
     if print_filename {
         for m in missing {
             eprintln!("{}:{}", file.display(), m.display());
