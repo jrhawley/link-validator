@@ -10,6 +10,7 @@ description = "Find all links in Markdown files and check that they exist."
 [dependencies]
 clap = "2"
 comrak = "0.10.1"
+percent-encoding = "2.1.0"
 url = "2"
 
 [[bin]]

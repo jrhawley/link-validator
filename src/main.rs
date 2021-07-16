@@ -9,6 +9,7 @@ use comrak::{
     nodes::{AstNode, NodeValue},
     parse_document, Arena, ComrakExtensionOptions, ComrakOptions,
 };
+use percent_encoding::percent_decode;
 use url::Url;
 
 fn main() {
@@ -112,9 +113,17 @@ fn validate_file(file: &Path) -> io::Result<bool> {
     for l in &links {
         // if it's a URL, ignore it
         if Url::parse(l).is_err() {
-            // convert all the non-ASCII characters
-            let p = PathBuf::from(l);
-            file_links.push(p);
+            // if it's not a URL, decode the percentage-encoded characters
+            match percent_decode(l.as_bytes()).decode_utf8() {
+                Ok(decoded) => {
+                    let p = PathBuf::from(decoded.to_string());
+                    file_links.push(p);
+                }
+                Err(e) => {
+                    eprintln!("Error decoding the following path: {}", l);
+                    eprintln!("The following error was produced: {}", e);
+                }
+            }
         }
     }
 
