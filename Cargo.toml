@@ -3,7 +3,7 @@ name = "markdown-link-validator"
 version = "0.1.0"
 edition = "2018"
 authors = ["James Hawley <developer@jrhawley.ca>"]
-description = "Find all links in Markdown files and check that they exist."
+description = "A CLI tool to find all links in Markdown files and check that they exist."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
