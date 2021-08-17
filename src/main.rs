@@ -1,23 +1,21 @@
 use std::{
     fs::File,
-    io::{self, Read},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
-use clap::{crate_authors, crate_description, crate_version, App, Arg};
+use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version, Arg};
 use comrak::{
     nodes::{AstNode, NodeValue},
     parse_document, Arena, ComrakExtensionOptions, ComrakOptions,
 };
 use percent_encoding::percent_decode;
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use url::Url;
 use walkdir::WalkDir;
 
 fn main() {
-    let matches = App::new("mlv")
-        .about(crate_description!())
-        .author(crate_authors!())
-        .version(crate_version!())
+    let matches = app_from_crate!()
         .arg(Arg::with_name("src")
             .takes_value(true)
             .required(true)
@@ -172,11 +170,27 @@ fn is_markdown(file: &Path) -> bool {
 fn print_missing(missing: Vec<PathBuf>, file: &Path, print_filename: bool) {
     if print_filename {
         for m in missing {
-            eprintln!("{}:{}", file.display(), m.display());
+            eprintln!("");
+            writeln_colour(file.to_str().unwrap(), Color::Magenta);
+            writeln_colour(m.to_str().unwrap(), Color::White);
         }
     } else {
         for m in missing {
-            eprintln!("{}", m.display());
+            writeln_colour(m.to_str().unwrap(), Color::White);
         }
     }
+}
+
+/// Print the text in colour
+fn write_colour(s: &str, colour: Color) -> io::Result<()> {
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    stdout.set_color(ColorSpec::new().set_fg(Some(colour)))?;
+    write!(&mut stdout, "{}", s)
+}
+
+/// Print the text in colour
+fn writeln_colour(s: &str, colour: Color) -> io::Result<()> {
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    stdout.set_color(ColorSpec::new().set_fg(Some(colour)))?;
+    writeln!(&mut stdout, "{}", s)
 }
