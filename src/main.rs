@@ -34,7 +34,11 @@ fn main() {
             if missing_links.len() > 0 {
                 eprintln!("The following linked files cannot be found:");
             }
-            print_missing(missing_links, src.as_path(), false);
+            print_missing(
+                missing_links.iter().map(|(s, _)| s.as_str()).collect(),
+                src.as_path(),
+                false,
+            );
         } else {
             eprintln!(
                 "`{}` does not appear to me a Markdown file. Skipping.",
@@ -53,7 +57,11 @@ fn main() {
                 any_missing = true;
                 eprintln!("The following linked files cannot be found:");
             }
-            print_missing(missing_links, entry.path(), true);
+            print_missing(
+                missing_links.iter().map(|(s, _)| s.as_str()).collect(),
+                entry.path(),
+                true,
+            );
         }
     } else {
         eprintln!(
@@ -87,7 +95,7 @@ fn extract_links<'a>(node: &'a AstNode<'a>, output: &mut Vec<String>) {
     }
 }
 
-fn get_missing_links(file: &Path) -> Vec<PathBuf> {
+fn get_missing_links(file: &Path) -> Vec<(String, PathBuf)> {
     let file_contents = read_markdown(file).unwrap();
     let arena = Arena::new();
     let opts = ComrakOptions {
@@ -102,7 +110,7 @@ fn get_missing_links(file: &Path) -> Vec<PathBuf> {
 
     // keep track of all the links in the file
     let mut links: Vec<String> = Vec::new();
-    let mut file_links: Vec<PathBuf> = Vec::new();
+    let mut file_links: Vec<(String, PathBuf)> = Vec::new();
 
     // iterate through all the nodes to collect links
     for node in root.children() {
@@ -117,7 +125,7 @@ fn get_missing_links(file: &Path) -> Vec<PathBuf> {
             match percent_decode(l.as_bytes()).decode_utf8() {
                 Ok(decoded) => {
                     let p = PathBuf::from(decoded.to_string());
-                    file_links.push(p);
+                    file_links.push((l.clone(), p));
                 }
                 Err(e) => {
                     eprintln!("Error decoding the following path: {}", l);
@@ -133,19 +141,19 @@ fn get_missing_links(file: &Path) -> Vec<PathBuf> {
         Some(dir) => dir.to_path_buf(),
         None => PathBuf::new(),
     };
-    for l in file_links.iter_mut() {
-        if l.is_relative() {
-            // can guarantee the unwrap because of the file name validation from before
-            let new_file = base_dir.join(l.as_path());
-            *l = new_file;
-        }
-    }
+    let link_pairs: Vec<(&str, PathBuf)> = file_links
+        .iter()
+        .map(|(written_path, file_path)| match file_path.is_relative() {
+            true => (written_path.as_str(), base_dir.join(file_path.as_path())),
+            false => (written_path.as_str(), file_path.clone()),
+        })
+        .collect();
 
     // check that each file link exists
-    let mut missing_links: Vec<PathBuf> = Vec::new();
-    for l in &file_links {
-        if !l.exists() {
-            missing_links.push(l.clone());
+    let mut missing_links: Vec<(String, PathBuf)> = Vec::new();
+    for (written_path, file_path) in link_pairs {
+        if !file_path.exists() {
+            missing_links.push((written_path.to_string(), file_path));
         }
     }
 
@@ -167,16 +175,16 @@ fn is_markdown(file: &Path) -> bool {
 }
 
 /// Print the missing links associated with the source file
-fn print_missing(missing: Vec<PathBuf>, file: &Path, print_filename: bool) {
-    if print_filename {
+fn print_missing(missing: Vec<&str>, file: &Path, print_filename: bool) {
+    if print_filename && missing.len() > 0 {
+        eprintln!("");
+        writeln_colour(file.to_str().unwrap(), Color::Magenta);
         for m in missing {
-            eprintln!("");
-            writeln_colour(file.to_str().unwrap(), Color::Magenta);
-            writeln_colour(m.to_str().unwrap(), Color::White);
+            writeln_colour(m, Color::White);
         }
     } else {
         for m in missing {
-            writeln_colour(m.to_str().unwrap(), Color::White);
+            writeln_colour(m, Color::White);
         }
     }
 }
