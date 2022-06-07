@@ -1,11 +1,9 @@
 [package]
-name = "markdown-link-validator"
+name = "link-validator"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 authors = ["James Hawley <developer@jrhawley.ca>"]
 description = "A CLI tool to find all links in Markdown files and check that they exist."
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clap = "2"
@@ -16,5 +14,5 @@ url = "2"
 walkdir = "2.3.2"
 
 [[bin]]
-name = "mlv"
+name = "lv"
 path = "src/main.rs"

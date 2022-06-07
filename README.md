@@ -13,6 +13,6 @@ mlv <path>
 The simplest way to install this tool is to use [Cargo](https://github.com/rust-lang/cargo):
 
 ```shell
-cargo install --git https://github.com/jrhawley/markdown-link-validator
+cargo install --git https://github.com/jrhawley/link-validator
 ```
 
