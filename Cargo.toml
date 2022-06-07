@@ -1,6 +1,6 @@
 [package]
 name = "link-validator"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["James Hawley <developer@jrhawley.ca>"]
 description = "A CLI tool to find all links in Markdown files and check that they exist."
